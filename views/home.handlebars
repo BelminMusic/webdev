@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Projects & Skills</title>
+</head>
+<body>
+  <h1>Skills</h1>
+  <ul>
+    {{#each skills}}
+      <li>{{name}} - {{level}}</li>
+    {{/each}}
+  </ul>
+
+  <h1>Projects</h1>
+  <ul>
+    {{#each projects}}
+      <li>{{name}} - {{description}}</li>
+    {{/each}}
+  </ul>
+</body>
+</html>

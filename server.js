@@ -23,7 +23,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(
   session({
     store: new SQLiteStore({ db: 'session-db.db', dir: './' }),
-    secret: 'mySuperSecretKey123', // change to a random string
+    secret: 'mySuperSecretKey123', // change this to a random string
     resave: false,
     saveUninitialized: false,
   })
@@ -38,7 +38,7 @@ app.use((req, res, next) => {
 // ---------- ADMIN LOGIN INFO ----------
 const adminUsername = 'admin';
 const adminHashedPassword =
-  '$2b$12$Ke8S0lpH9uQ2UW.kaNaLHeR9QXyRr6dGYKk3DnvVYS681B8alLoGK'; // password "1234"
+  '$2b$12$Ke8S0lpH9uQ2UW.kaNaLHeR9QXyRr6dGYKk3DnvVYS681B8alLoGK'; // hash for password "1234"
 
 // ---------- ROUTES ----------
 
@@ -57,7 +57,7 @@ app.get('/contact', (req, res) => {
   res.render('contact', { title: 'Contact' });
 });
 
-// ---------- PROJECTS (CRUD) ----------
+// ---------- PROJECTS (CRUD + DETAILS) ----------
 let projects = [
   {
     id: 1,
@@ -73,7 +73,7 @@ let projects = [
   },
 ];
 
-// ----- READ: Show all projects (protected) -----
+// ----- READ: Show all projects -----
 app.get('/projects', (req, res) => {
   if (!req.session.isLoggedIn) {
     return res.render('login', {
@@ -90,7 +90,7 @@ app.get('/projects/new', (req, res) => {
   res.render('project-form', { title: 'New Project' });
 });
 
-// ----- CREATE: Handle form submission -----
+// ----- CREATE: Handle submission -----
 app.post('/projects/new', (req, res) => {
   if (!req.session.isAdmin) return res.redirect('/login');
 
@@ -117,7 +117,7 @@ app.get('/projects/edit/:id', (req, res) => {
   res.render('project-form', { title: 'Edit Project', project });
 });
 
-// ----- UPDATE: Handle form submission -----
+// ----- UPDATE: Handle submission -----
 app.post('/projects/edit/:id', (req, res) => {
   if (!req.session.isAdmin) return res.redirect('/login');
 
@@ -142,6 +142,22 @@ app.get('/projects/delete/:id', (req, res) => {
   res.redirect('/projects');
 });
 
+// ----- DETAILS: View single project -----
+app.get('/projects/:id', (req, res) => {
+  if (!req.session.isLoggedIn) {
+    return res.redirect('/login');
+  }
+
+  const id = parseInt(req.params.id);
+  const project = projects.find(p => p.id === id);
+
+  if (!project) {
+    return res.status(404).render('404', { title: 'Project Not Found' });
+  }
+
+  res.render('project-details', { title: project.name, project });
+});
+
 // ---------- LOGIN SYSTEM ----------
 
 // Login page
@@ -149,7 +165,7 @@ app.get('/login', (req, res) => {
   res.render('login', { title: 'Login' });
 });
 
-// Handle login form
+// Handle login
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
@@ -166,10 +182,11 @@ app.post('/login', async (req, res) => {
   req.session.un = username;
   req.session.isLoggedIn = true;
   req.session.isAdmin = true;
+
   res.redirect('/');
 });
 
-// Logout route
+// Logout
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/');

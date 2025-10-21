@@ -1,21 +1,31 @@
 <h1>Projects</h1>
 
+{{!-- Only show "Add Project" link if admin is logged in --}}
 {{#if session.isAdmin}}
-  <a href="/projects/new">➕ Add New Project</a>
+  <a href="/projects/new" class="btn">➕ Add New Project</a>
 {{/if}}
 
-<ul>
-  {{#each projects}}
-    <li>
-      <h2><a href="/projects/{{this.id}}">{{this.name}}</a></h2>
-      <p>{{this.description}}</p>
-      <img src="{{this.image}}" alt="{{this.name}}" width="250"><br>
+<hr>
 
-      <a href="/projects/{{this.id}}">🔍 View Details</a>
+<ul style="list-style: none; padding: 0;">
+  {{#each projects}}
+    <li style="margin-bottom: 40px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px;">
+      <h2><a href="/projects/{{this.id}}" style="text-decoration: none; color: #111827;">{{this.name}}</a></h2>
+
+      <p>{{this.shortDescription}}</p>
+
+      {{#if this.image}}
+        <img src="/img/{{this.image}}" alt="{{this.name}}" width="250" style="border-radius: 8px; margin: 10px 0;">
+      {{else}}
+        <img src="/img/placeholder.png" alt="No image available" width="250" style="border-radius: 8px; margin: 10px 0;">
+      {{/if}}
+
+      <br>
+      <a href="/projects/{{this.id}}" class="btn outline">🔍 View Details</a>
 
       {{#if ../session.isAdmin}}
-        | <a href="/projects/edit/{{this.id}}">✏️ Edit</a> |
-        <a href="/projects/delete/{{this.id}}" style="color:red;">🗑️ Delete</a>
+        | <a href="/projects/edit/{{this.id}}" class="btn">✏️ Edit</a>
+        | <a href="/projects/delete/{{this.id}}" class="btn danger">🗑️ Delete</a>
       {{/if}}
     </li>
   {{/each}}

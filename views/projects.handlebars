@@ -1,0 +1,11 @@
+<h1>My Projects</h1>
+<p>Here are some of the projects I’ve worked on recently:</p>
+
+<ul>
+  {{#each projects}}
+    <li>
+      <h2>{{this.name}}</h2>
+      <p>{{this.description}}</p>
+    </li>
+  {{/each}}
+</ul>

@@ -1,70 +1,93 @@
-const express = require("express");
-const path = require("path");
-const sqlite3 = require("sqlite3").verbose();
-
-// Open or create SQLite database
-const db = new sqlite3.Database("./persons.db");
+// app.js
+const express = require('express');
+const sqlite3 = require('sqlite3').verbose();
+const exphbs = require('express-handlebars');
 
 const app = express();
-const PORT = 8080;
+const PORT = 3000;
 
-// Create table and insert sample data if table is empty
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS persons (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    age INTEGER,
-    city TEXT
-  )`);
+// JSON data (replace with your own data if you want)
+const skills = [
+  { id: 1, name: "JavaScript", level: "Advanced" },
+  { id: 2, name: "HTML", level: "Intermediate" },
+  { id: 3, name: "CSS", level: "Intermediate" }
+];
 
-  db.get("SELECT COUNT(*) AS count FROM persons", (err, row) => {
-    if (err) throw err;
-    if (row.count === 0) {
-      db.run(`INSERT INTO persons (name, age, city) VALUES 
-        ('Alice', 30, 'Paris'),
-        ('Bob', 25, 'London'),
-        ('Charlie', 35, 'New York')`);
-    }
-  });
+const projects = [
+  { id: 1, name: "Portfolio Website", description: "A personal portfolio", skill_id: 1 },
+  { id: 2, name: "Todo App", description: "A simple todo app", skill_id: 1 }
+];
+
+// Set up Handlebars
+app.engine('handlebars', exphbs.engine());
+app.set('view engine', 'handlebars');
+
+// Create or open SQLite database
+const db = new sqlite3.Database('./projects_skills.db', (err) => {
+  if (err) {
+    console.error(err.message);
+  } else {
+    console.log('Connected to SQLite database.');
+  }
 });
 
-// Serve static files (CSS, images, etc.)
-app.use(express.static(__dirname));
+// ------------------------------
+// Functions to create/populate tables
+// ------------------------------
+function initTableSkills() {
+  db.serialize(() => {
+    db.run(`CREATE TABLE IF NOT EXISTS skills (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      level TEXT NOT NULL
+    )`);
 
-// Routes
-app.get("/", (req, res) => {
-  res.send("Hello, World!");
-});
-
-// Serve CV HTML page
-app.get("/cv", (req, res) => {
-  res.sendFile(path.join(__dirname, "cv-jl.html"));
-});
-
-// Return raw data from SQLite
-app.get("/rawpersons", (req, res) => {
-  db.all("SELECT * FROM persons", (err, rows) => {
-    if (err) return res.status(500).send("Database error");
-    res.json(rows);
-  });
-});
-
-// Return HTML list from SQLite data
-app.get("/listpersons", (req, res) => {
-  db.all("SELECT * FROM persons", (err, rows) => {
-    if (err) return res.status(500).send("Database error");
-
-    let html = "<h1>Persons List</h1><ul>";
-    rows.forEach(person => {
-      html += `<li>${person.name}, Age: ${person.age}, City: ${person.city}</li>`;
+    skills.forEach(skill => {
+      db.run(`INSERT OR IGNORE INTO skills (id, name, level) VALUES (?, ?, ?)`,
+        [skill.id, skill.name, skill.level],
+        (err) => { if (err) console.error(err.message); });
     });
-    html += "</ul>";
+  });
+}
 
-    res.send(html);
+function initTableProjects() {
+  db.serialize(() => {
+    db.run(`CREATE TABLE IF NOT EXISTS projects (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      skill_id INTEGER,
+      FOREIGN KEY(skill_id) REFERENCES skills(id)
+    )`);
+
+    projects.forEach(project => {
+      db.run(`INSERT OR IGNORE INTO projects (id, name, description, skill_id) VALUES (?, ?, ?, ?)`,
+        [project.id, project.name, project.description, project.skill_id],
+        (err) => { if (err) console.error(err.message); });
+    });
+  });
+}
+
+// ------------------------------
+// Routes
+// ------------------------------
+app.get('/', (req, res) => {
+  db.all("SELECT * FROM skills", [], (err, skillsRows) => {
+    if (err) throw err;
+    db.all("SELECT * FROM projects", [], (err, projectsRows) => {
+      if (err) throw err;
+      res.render('home', { skills: skillsRows, projects: projectsRows });
+    });
   });
 });
 
-// Start the server
+// ------------------------------
+// Start server and initialize tables
+// ------------------------------
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
+  console.log(`Server running at http://localhost:${PORT}`);
+
+  // Initialize tables at startup
+  initTableSkills();
+  initTableProjects();
 });

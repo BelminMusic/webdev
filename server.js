@@ -1,3 +1,18 @@
+/*
+--------------------------------------------
+TGWK12 Web Development Project - 2025
+Student: Belmin Music
+Email: mube23je@student.ju.se
+
+Target grade: 3
+
+Administrator login: admin
+Administrator password: "wdf#2025"
+Hashed password: "$2b$12$HKOr8TOBuDhHlM8KDPX9cOQwaP6byLv1ixXzItpWzKSxGPop72jDq"
+
+--------------------------------------------
+*/
+
 // ---------- IMPORT REQUIRED MODULES ----------
 const express = require('express');
 const exphbs = require('express-handlebars');
@@ -5,6 +20,7 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
+const db = require('./db'); // connects to projects.db
 
 const app = express();
 const PORT = 8080;
@@ -12,7 +28,7 @@ const PORT = 8080;
 // ---------- MIDDLEWARE ----------
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'))); // serve /public for css/img/js
+app.use(express.static(path.join(__dirname, 'public'))); // serve CSS, JS, images
 
 // ---------- HANDLEBARS SETUP ----------
 app.engine('handlebars', exphbs.engine());
@@ -23,13 +39,13 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(
   session({
     store: new SQLiteStore({ db: 'session-db.db', dir: './' }),
-    secret: 'mySuperSecretKey123', // change to a random string
+    secret: 'mySuperSecretKey123',
     resave: false,
     saveUninitialized: false,
   })
 );
 
-// Make session variables visible in all handlebars templates
+// Make session available in templates
 app.use((req, res, next) => {
   res.locals.session = req.session;
   next();
@@ -38,71 +54,156 @@ app.use((req, res, next) => {
 // ---------- ADMIN LOGIN INFO ----------
 const adminUsername = 'admin';
 const adminHashedPassword =
-  '$2b$12$Ke8S0lpH9uQ2UW.kaNaLHeR9QXyRr6dGYKk3DnvVYS681B8alLoGK'; // hash for "1234"
-
-// ---------- PROJECT DATA ----------
-let projects = [
-  {
-    id: 1,
-    name: 'Goal Dash',
-    shortDescription:
-      'A fast-paced football game where you try to score goals past a moving wall of defenders.',
-    longDescription: `Goal Dash is a fun and challenging football game where the player scores goals past a moving wall of defenders.
-Each level increases in difficulty as the wall moves faster and becomes larger, testing your timing and precision.
-The game was created using HTML, CSS, and JavaScript, and includes collision detection, level progression, and a start screen.`,
-    image: 'footballgame.jpg',
-    technologies: 'HTML, CSS, JavaScript',
-    features: 'Collision detection, level progression, start screen',
-  },
-  {
-    id: 2,
-    name: 'Space Explorer',
-    shortDescription:
-      'A space-themed simulation game focused on exploring galaxies and collecting resources.',
-    longDescription: `Space Explorer is a simulation game where players navigate through space to discover new galaxies and collect rare resources.
-It features animated backgrounds, smooth controls, and interactive gameplay built using HTML, CSS, and JavaScript.`,
-    image: 'spacegame.jpg',
-    technologies: 'HTML, CSS, JavaScript',
-    features: 'Animation, user input handling, dynamic backgrounds',
-  },
-];
+  '$2b$12$HKOr8TOBuDhHlM8KDPX9cOQwaP6byLv1ixXzItpWzKSxGPop72jDq'; // hash for "wdf#2025"
 
 // ---------- ROUTES ----------
 
-// Home
+// ---------- HOME ----------
 app.get('/', (req, res) => {
   res.render('home', { title: 'Home' });
 });
 
-// About (CV)
+// ---------- ABOUT ----------
 app.get('/about', (req, res) => {
   res.render('cvjl', { title: 'About Me' });
 });
 
-// Contact
+// ---------- CONTACT FORM ----------
 app.get('/contact', (req, res) => {
   res.render('contact', { title: 'Contact' });
+});
+
+// Handle form submission (save to contacts)
+app.post('/contact', (req, res) => {
+  const { name, email, message } = req.body;
+  if (!name || !email || !message) {
+    return res.render('contact', {
+      title: 'Contact',
+      error: 'Please fill in all fields',
+    });
+  }
+
+  db.run(
+    'INSERT INTO contacts (name, email, message) VALUES (?, ?, ?)',
+    [name, email, message],
+    (err) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).send('Database error');
+      }
+      res.render('contact', {
+        title: 'Contact',
+        success: '✅ Thank you for your message!',
+      });
+    }
+  );
+});
+
+// ---------- ADMIN VIEW: CONTACT MESSAGES ----------
+app.get('/contacts/list', (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.status(403).send('Access denied');
+  }
+
+  db.all('SELECT * FROM contacts', (err, rows) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).send('Database error');
+    }
+    res.render('contacts', { title: 'Contact Messages', contacts: rows });
+  });
 });
 
 // ---------- PROJECT ROUTES ----------
 
 // Show all projects
 app.get('/projects', (req, res) => {
-  res.render('projects', { title: 'Projects', projects });
+  db.all('SELECT * FROM projects', (err, rows) => {
+    if (err) {
+      console.error('Database error:', err.message);
+      return res.status(500).send('Database error');
+    }
+    res.render('projects', { title: 'Projects', projects: rows });
+  });
 });
 
-// Show single project details
+// ✅ Create new project form (must come before :id route!)
+app.get('/projects/new', (req, res) => {
+  if (!req.session.isAdmin) return res.redirect('/login');
+  res.render('project-new', { title: 'Add New Project' });
+});
+
+// Handle new project creation
+app.post('/projects/new', (req, res) => {
+  if (!req.session.isAdmin) return res.redirect('/login');
+
+  const { name, shortDescription, longDescription, image, technologies, features } = req.body;
+
+  db.run(
+    'INSERT INTO projects (name, shortDescription, longDescription, image, technologies, features) VALUES (?, ?, ?, ?, ?, ?)',
+    [name, shortDescription, longDescription, image, technologies, features],
+    (err) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).send('Database error');
+      }
+      res.redirect('/projects');
+    }
+  );
+});
+
+// Edit project form
+app.get('/projects/edit/:id', (req, res) => {
+  if (!req.session.isAdmin) return res.redirect('/login');
+
+  const id = req.params.id;
+  db.get('SELECT * FROM projects WHERE id = ?', [id], (err, row) => {
+    if (err) throw err;
+    if (!row) return res.status(404).send('Project not found');
+    res.render('project-edit', { title: 'Edit Project', project: row });
+  });
+});
+
+// Handle edit submission
+app.post('/projects/edit/:id', (req, res) => {
+  if (!req.session.isAdmin) return res.redirect('/login');
+
+  const id = req.params.id;
+  const { name, shortDescription, longDescription, image, technologies, features } = req.body;
+
+  db.run(
+    'UPDATE projects SET name=?, shortDescription=?, longDescription=?, image=?, technologies=?, features=? WHERE id=?',
+    [name, shortDescription, longDescription, image, technologies, features, id],
+    (err) => {
+      if (err) throw err;
+      res.redirect('/projects');
+    }
+  );
+});
+
+// Delete project
+app.get('/projects/delete/:id', (req, res) => {
+  if (!req.session.isAdmin) return res.redirect('/login');
+
+  const id = req.params.id;
+  db.run('DELETE FROM projects WHERE id = ?', [id], (err) => {
+    if (err) throw err;
+    res.redirect('/projects');
+  });
+});
+
+// Show single project (after /projects/new so it doesn’t block)
 app.get('/projects/:id', (req, res) => {
-  const projectId = parseInt(req.params.id);
-  const project = projects.find((p) => p.id === projectId);
-
-  if (!project) {
-    return res.status(404).render('404', { title: 'Project Not Found' });
-  }
-
-  res.render('project-details', {
-    title: project.name,
-    project,
+  const id = req.params.id;
+  db.get('SELECT * FROM projects WHERE id = ?', [id], (err, row) => {
+    if (err) {
+      console.error('Database error:', err.message);
+      return res.status(500).send('Database error');
+    }
+    if (!row) {
+      return res.status(404).render('404', { title: 'Project Not Found' });
+    }
+    res.render('project-details', { title: row.name, project: row });
   });
 });
 
@@ -113,7 +214,7 @@ app.get('/login', (req, res) => {
   res.render('login', { title: 'Login' });
 });
 
-// Login form submission
+// Handle login
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
@@ -126,7 +227,6 @@ app.post('/login', async (req, res) => {
     return res.render('login', { title: 'Login', error: 'Incorrect password' });
   }
 
-  // Successful login
   req.session.un = username;
   req.session.isLoggedIn = true;
   req.session.isAdmin = true;
@@ -134,7 +234,7 @@ app.post('/login', async (req, res) => {
   res.redirect('/');
 });
 
-// Logout route
+// Logout
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/');

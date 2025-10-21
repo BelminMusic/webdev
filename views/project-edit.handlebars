@@ -1,0 +1,25 @@
+<h1>Edit Project</h1>
+
+<form action="/projects/edit/{{project.id}}" method="POST" class="form-container">
+  <label for="name">Project Name:</label>
+  <input type="text" name="name" id="name" value="{{project.name}}" required>
+
+  <label for="shortDescription">Short Description:</label>
+  <textarea name="shortDescription" id="shortDescription" required>{{project.shortDescription}}</textarea>
+
+  <label for="longDescription">Long Description:</label>
+  <textarea name="longDescription" id="longDescription" rows="5" required>{{project.longDescription}}</textarea>
+
+  <label for="image">Image Filename:</label>
+  <input type="text" name="image" id="image" value="{{project.image}}" placeholder="e.g. footballgame.jpg">
+
+  <label for="technologies">Technologies:</label>
+  <input type="text" name="technologies" id="technologies" value="{{project.technologies}}">
+
+  <label for="features">Features:</label>
+  <input type="text" name="features" id="features" value="{{project.features}}">
+
+  <button type="submit" class="btn">💾 Save Changes</button>
+</form>
+
+<a href="/projects">← Back to Projects</a>

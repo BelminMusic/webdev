@@ -7,12 +7,14 @@
 <ul>
   {{#each projects}}
     <li>
-      <h2>{{this.name}}</h2>
+      <h2><a href="/projects/{{this.id}}">{{this.name}}</a></h2>
       <p>{{this.description}}</p>
       <img src="{{this.image}}" alt="{{this.name}}" width="250"><br>
 
+      <a href="/projects/{{this.id}}">🔍 View Details</a>
+
       {{#if ../session.isAdmin}}
-        <a href="/projects/edit/{{this.id}}">✏️ Edit</a> |
+        | <a href="/projects/edit/{{this.id}}">✏️ Edit</a> |
         <a href="/projects/delete/{{this.id}}" style="color:red;">🗑️ Delete</a>
       {{/if}}
     </li>

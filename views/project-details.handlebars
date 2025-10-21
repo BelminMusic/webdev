@@ -1,6 +1,13 @@
 <h1>{{project.name}}</h1>
 
-<p>{{project.description}}</p>
 <img src="{{project.image}}" alt="{{project.name}}" width="400">
+<p>{{project.description}}</p>
+
+{{#if session.isAdmin}}
+  <p>
+    <a href="/projects/edit/{{project.id}}">✏️ Edit</a> |
+    <a href="/projects/delete/{{project.id}}" style="color:red;">🗑️ Delete</a>
+  </p>
+{{/if}}
 
 <a href="/projects">← Back to all projects</a>

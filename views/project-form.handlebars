@@ -1,0 +1,16 @@
+<h1>{{title}}</h1>
+
+<form action="{{#if project}}/projects/edit/{{project.id}}{{else}}/projects/new{{/if}}" method="POST">
+  <label>Name:</label><br>
+  <input type="text" name="name" value="{{project.name}}" required><br><br>
+
+  <label>Description:</label><br>
+  <textarea name="description" required>{{project.description}}</textarea><br><br>
+
+  <label>Image URL:</label><br>
+  <input type="text" name="image" value="{{project.image}}"><br><br>
+
+  <button type="submit">{{#if project}}Update{{else}}Create{{/if}}</button>
+</form>
+
+<a href="/projects">← Back to Projects</a>

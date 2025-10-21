@@ -23,7 +23,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(
   session({
     store: new SQLiteStore({ db: 'session-db.db', dir: './' }),
-    secret: 'mySuperSecretKey123', // change this to any random string
+    secret: 'mySuperSecretKey123', // change to a random string
     resave: false,
     saveUninitialized: false,
   })
@@ -38,7 +38,7 @@ app.use((req, res, next) => {
 // ---------- ADMIN LOGIN INFO ----------
 const adminUsername = 'admin';
 const adminHashedPassword =
-  '$2b$12$Ke8S0lpH9uQ2UW.kaNaLHeR9QXyRr6dGYKk3DnvVYS681B8alLoGK'; // hash for password "1234"
+  '$2b$12$Ke8S0lpH9uQ2UW.kaNaLHeR9QXyRr6dGYKk3DnvVYS681B8alLoGK'; // password "1234"
 
 // ---------- ROUTES ----------
 
@@ -57,31 +57,89 @@ app.get('/contact', (req, res) => {
   res.render('contact', { title: 'Contact' });
 });
 
-// ---------- PROTECTED PROJECTS PAGE ----------
-const projects = [
+// ---------- PROJECTS (CRUD) ----------
+let projects = [
   {
+    id: 1,
     name: 'Goal Dash',
     description: 'A football shooting game where you score goals past a moving wall.',
     image: '/img/goal_dash.png',
   },
   {
+    id: 2,
     name: 'Space Explorer',
     description: 'A space-themed simulation game about navigating the galaxy.',
     image: '/img/space_explorer.png',
   },
 ];
 
+// ----- READ: Show all projects (protected) -----
 app.get('/projects', (req, res) => {
   if (!req.session.isLoggedIn) {
-    // Redirect to login page if not logged in
     return res.render('login', {
       title: 'Login',
       error: 'Please log in to view the projects.',
     });
   }
-
-  // Logged in → show projects page
   res.render('projects', { title: 'Projects', projects });
+});
+
+// ----- CREATE: Show form -----
+app.get('/projects/new', (req, res) => {
+  if (!req.session.isAdmin) return res.redirect('/login');
+  res.render('project-form', { title: 'New Project' });
+});
+
+// ----- CREATE: Handle form submission -----
+app.post('/projects/new', (req, res) => {
+  if (!req.session.isAdmin) return res.redirect('/login');
+
+  const { name, description, image } = req.body;
+  const newProject = {
+    id: projects.length + 1,
+    name,
+    description,
+    image,
+  };
+
+  projects.push(newProject);
+  res.redirect('/projects');
+});
+
+// ----- UPDATE: Show edit form -----
+app.get('/projects/edit/:id', (req, res) => {
+  if (!req.session.isAdmin) return res.redirect('/login');
+
+  const id = parseInt(req.params.id);
+  const project = projects.find(p => p.id === id);
+  if (!project) return res.redirect('/projects');
+
+  res.render('project-form', { title: 'Edit Project', project });
+});
+
+// ----- UPDATE: Handle form submission -----
+app.post('/projects/edit/:id', (req, res) => {
+  if (!req.session.isAdmin) return res.redirect('/login');
+
+  const id = parseInt(req.params.id);
+  const project = projects.find(p => p.id === id);
+  if (project) {
+    project.name = req.body.name;
+    project.description = req.body.description;
+    project.image = req.body.image;
+  }
+
+  res.redirect('/projects');
+});
+
+// ----- DELETE: Remove project -----
+app.get('/projects/delete/:id', (req, res) => {
+  if (!req.session.isAdmin) return res.redirect('/login');
+
+  const id = parseInt(req.params.id);
+  projects = projects.filter(p => p.id !== id);
+
+  res.redirect('/projects');
 });
 
 // ---------- LOGIN SYSTEM ----------
@@ -91,7 +149,7 @@ app.get('/login', (req, res) => {
   res.render('login', { title: 'Login' });
 });
 
-// Login form submission
+// Handle login form
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
@@ -108,7 +166,6 @@ app.post('/login', async (req, res) => {
   req.session.un = username;
   req.session.isLoggedIn = true;
   req.session.isAdmin = true;
-
   res.redirect('/');
 });
 
@@ -117,6 +174,19 @@ app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/');
   });
+});
+
+// ---------- ERROR HANDLING ----------
+
+// 404 Not Found
+app.use((req, res) => {
+  res.status(404).render('404', { title: 'Page Not Found' });
+});
+
+// 500 Internal Server Error
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).render('500', { title: 'Server Error' });
 });
 
 // ---------- START SERVER ----------

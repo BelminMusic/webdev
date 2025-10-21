@@ -1,11 +1,20 @@
-<h1>My Projects</h1>
-<p>Here are some of the projects I’ve worked on recently:</p>
+<h1>Projects</h1>
+
+{{#if session.isAdmin}}
+  <a href="/projects/new">➕ Add New Project</a>
+{{/if}}
 
 <ul>
   {{#each projects}}
     <li>
       <h2>{{this.name}}</h2>
       <p>{{this.description}}</p>
+      <img src="{{this.image}}" alt="{{this.name}}" width="250"><br>
+
+      {{#if ../session.isAdmin}}
+        <a href="/projects/edit/{{this.id}}">✏️ Edit</a> |
+        <a href="/projects/delete/{{this.id}}" style="color:red;">🗑️ Delete</a>
+      {{/if}}
     </li>
   {{/each}}
 </ul>
